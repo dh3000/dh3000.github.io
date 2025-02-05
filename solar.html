@@ -25,39 +25,73 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            margin: 20px 0;
+            margin: 0 10px;
         }
         .button:disabled {
             background: #ccc;
         }
-        .error {
-            color: #dc2626;
-            padding: 10px;
-            background: #fee2e2;
-            border-radius: 4px;
-            margin: 10px 0;
+        .controls {
+            margin: 20px 0;
+            text-align: center;
         }
         .status {
-            font-size: 1.5rem;
+            font-size: 24px;
             font-weight: bold;
+            color: #dc2626;
             margin: 20px 0;
         }
-        .quiet { color: #16a34a; }
-        .active { color: #dc2626; }
+        .quiet {
+            color: #16a34a;
+        }
+        .bar-chart {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 4px;
+        }
+        .bar {
+            height: 30px;
+            background: #0066cc;
+            margin: 5px 0;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            padding-left: 10px;
+            color: white;
+            font-size: 14px;
+        }
+        .bar-label {
+            display: inline-block;
+            width: 150px;
+            font-size: 14px;
+        }
+        .date-header {
+            font-weight: bold;
+            margin-top: 20px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Solar Flare Check</h1>
-        <p>Click to check today's solar flare activity.</p>
         
+        <div class="controls">
+            <button onclick="checkSolarFlares('yesterday')" id="yesterdayButton" class="button">
+                Check Yesterday
+            </button>
+            <button onclick="checkSolarFlares('today')" id="todayButton" class="button">
+                Check Today
+            </button>
+        </div>
+
         <div id="result">
             <!-- Results will be displayed here -->
         </div>
 
-        <button onclick="checkSolarFlares()" id="checkButton" class="button">
-            Check Solar Activity
-        </button>
+        <div id="visualization">
+            <!-- Bar chart will be displayed here -->
+        </div>
 
         <div class="info">
             <h3>Solar Flare Classifications:</h3>
@@ -74,52 +108,106 @@
             return date.toISOString().split('T')[0];
         }
 
-        async function checkSolarFlares() {
+        function getDateString(date) {
+            return new Date(date).toLocaleDateString(undefined, {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        function calculateFlareStrength(classType) {
+            const magnitude = parseFloat(classType.slice(1)) || 1;
+            switch(classType.charAt(0)) {
+                case 'X': return magnitude * 100;
+                case 'M': return magnitude * 10;
+                case 'C': return magnitude;
+                case 'B': return magnitude * 0.1;
+                default: return 0;
+            }
+        }
+
+        function renderBarChart(flares) {
+            const vizDiv = document.getElementById('visualization');
+            if (!flares || flares.length === 0) {
+                vizDiv.innerHTML = '';
+                return;
+            }
+
+            // Sort flares by strength
+            const sortedFlares = [...flares].sort((a, b) => 
+                calculateFlareStrength(b.classType) - calculateFlareStrength(a.classType)
+            );
+
+            // Find max strength for scaling
+            const maxStrength = Math.max(...sortedFlares.map(f => calculateFlareStrength(f.classType)));
+
+            let html = '<div class="bar-chart">';
+            html += '<h3>Flare Intensities</h3>';
+            
+            sortedFlares.forEach(flare => {
+                const strength = calculateFlareStrength(flare.classType);
+                const width = (strength / maxStrength * 100).toFixed(1);
+                const time = new Date(flare.beginTime).toLocaleTimeString();
+                
+                html += `
+                    <div style="display: flex; align-items: center;">
+                        <span class="bar-label">${flare.classType} at ${time}</span>
+                        <div class="bar" style="width: ${width}%;">
+                            ${flare.classType}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            vizDiv.innerHTML = html;
+        }
+
+        async function checkSolarFlares(when = 'today') {
             const resultDiv = document.getElementById('result');
-            const button = document.getElementById('checkButton');
+            const buttons = document.querySelectorAll('.button');
             
-            // Clear previous results
-            resultDiv.innerHTML = 'Checking solar activity...';
-            
-            // Disable button while checking
-            button.disabled = true;
+            // Disable buttons while checking
+            buttons.forEach(btn => btn.disabled = true);
             
             try {
-                const today = formatDate(new Date());
-                console.log('Checking date:', today);
+                const today = new Date();
+                const date = when === 'today' ? today : new Date(today.setDate(today.getDate() - 1));
+                const dateStr = formatDate(date);
                 
                 const response = await fetch(
-                    `https://api.nasa.gov/DONKI/FLR?startDate=${today}&endDate=${today}&api_key=ca7RMecVzIUS5qGgJSpaBsq847ulTsHfDSHuIL6a`
+                    `https://api.nasa.gov/DONKI/FLR?startDate=${dateStr}&endDate=${dateStr}&api_key=YOUR_API_KEY`
                 );
-                
-                console.log('Response status:', response.status);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
                 const data = await response.json();
-                console.log('Received data:', data);
                 
                 if (data.length === 0) {
                     resultDiv.innerHTML = `
-                        <div class="status quiet">QUIET SUN</div>
-                        <p>No solar flares detected today.</p>
+                        <p class="status quiet">QUIET SUN</p>
+                        <p>No solar flares detected on ${getDateString(dateStr)}.</p>
                     `;
+                    renderBarChart([]);
                 } else {
                     const flareList = data.map(flare => `
                         <li>
-                            <strong>Class ${flare.classType || 'Unknown'}</strong><br>
+                            <strong>Class ${flare.classType}</strong><br>
                             Time: ${new Date(flare.beginTime).toLocaleString()}<br>
                             Location: ${flare.sourceLocation || 'Unknown'}
                         </li>
                     `).join('');
                     
                     resultDiv.innerHTML = `
-                        <div class="status active">ACTIVE SUN</div>
-                        <p>Today's solar flares:</p>
+                        <p class="status">ACTIVE SUN</p>
+                        <p class="date-header">${getDateString(dateStr)}:</p>
                         <ul>${flareList}</ul>
                     `;
+                    renderBarChart(data);
                 }
                 
             } catch (error) {
@@ -131,10 +219,13 @@
                     </div>
                 `;
             } finally {
-                // Always re-enable the button
-                button.disabled = false;
+                // Re-enable buttons
+                buttons.forEach(btn => btn.disabled = false);
             }
         }
+
+        // Initial check
+        checkSolarFlares('today');
     </script>
 </body>
 </html>
