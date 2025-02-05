@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solar Activity - Your Site</title>
+    <title>Solar Impact Index - Your Site</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
     <style>
         .solar-card {
             background: #fff;
@@ -14,59 +17,40 @@
             margin: 2rem 0;
         }
         .status {
-            font-size: 1.2rem;
+            font-size: 2rem;
             font-weight: 600;
             margin: 1rem 0;
+            text-align: center;
         }
-        .quiet {
-            color: #16a34a;
-        }
-        .active {
-            color: #dc2626;
-        }
-        .loading {
+        .details {
+            font-size: 1.1rem;
             color: #666;
+            margin: 1rem 0;
         }
+        .chart-container {
+            margin: 2rem -2rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-top: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+        }
+        .legend {
+            font-size: 0.9rem;
+            color: #666;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 4px;
+        }
+        .legend-item {
+            margin: 0.5rem 0;
+        }
+        .extreme { color: #dc2626; }
+        .high { color: #ea580c; }
+        .normal { color: #16a34a; }
+        .low { color: #2563eb; }
+        .loading { color: #666; }
     </style>
-    <script>
-        async function checkSolarActivity() {
-            const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML = '<p class="status loading">Checking solar conditions...</p>';
-
-            try {
-                const today = new Date().toISOString().split('T')[0];
-                const response = await fetch(
-                    `https://api.nasa.gov/DONKI/FLR?startDate=${today}&endDate=${today}&api_key=DEMO_KEY`
-                );
-                const data = await response.json();
-
-                if (data.length === 0) {
-                    resultDiv.innerHTML = `
-                        <p class="status quiet">All quiet on the solar front today!</p>
-                        <p>No significant solar flares detected.</p>
-                    `;
-                } else {
-                    const flares = data.map(flare => 
-                        `<p>Class ${flare.classType} flare detected at ${new Date(flare.beginTime).toLocaleTimeString()}</p>`
-                    ).join('');
-                    
-                    resultDiv.innerHTML = `
-                        <p class="status active">Solar activity detected!</p>
-                        ${flares}
-                    `;
-                }
-            } catch (error) {
-                resultDiv.innerHTML = `
-                    <p class="status">Error checking solar activity</p>
-                    <p>Please try again later.</p>
-                `;
-                console.error('Error:', error);
-            }
-        }
-
-        // Check when page loads
-        document.addEventListener('DOMContentLoaded', checkSolarActivity);
-    </script>
 </head>
 <body>
     <header>
@@ -75,13 +59,23 @@
 
     <main>
         <div class="solar-card">
-            <h2>Today's Solar Activity</h2>
+            <h2>Solar Impact Index</h2>
             <div id="result">
-                <p class="status loading">Loading solar data...</p>
+                <p class="status loading">Calculating solar impact...</p>
             </div>
-            <button onclick="checkSolarActivity()" 
+            <div id="chart" class="chart-container">
+                <!-- Chart will be rendered here -->
+            </div>
+            <div class="legend">
+                <h3>Understanding the Impact Index</h3>
+                <p class="legend-item">• X-class flares (×100): Extreme events that can trigger planet-wide radio blackouts</p>
+                <p class="legend-item">• M-class flares (×10): Strong events that can cause radio blackouts around Earth's poles</p>
+                <p class="legend-item">• C-class flares (×1): Minor events with few noticeable consequences</p>
+                <p class="legend-item">• B-class flares (×0.1): Background level activity</p>
+            </div>
+            <button onclick="analyzeSolarActivity()" 
                     style="padding: 0.5rem 1rem; background: #0066cc; color: white; 
-                           border: none; border-radius: 4px; cursor: pointer;">
+                           border: none; border-radius: 4px; cursor: pointer; display: block; margin: 1rem auto;">
                 Check Again
             </button>
         </div>
@@ -90,5 +84,147 @@
     <footer>
         <p>Data provided by NASA's DONKI API • © 2025</p>
     </footer>
+
+    <script>
+        function calculateImpactScore(flare) {
+            // Extract class type (B, C, M, or X) and magnitude
+            const classType = flare.classType.charAt(0);
+            const magnitude = parseFloat(flare.classType.slice(1)) || 1;
+            
+            // Calculate base score based on class
+            let baseScore;
+            switch(classType) {
+                case 'X': baseScore = 100; break;
+                case 'M': baseScore = 10; break;
+                case 'C': baseScore = 1; break;
+                case 'B': baseScore = 0.1; break;
+                default: baseScore = 0;
+            }
+            
+            // Final score is base score multiplied by magnitude
+            return baseScore * magnitude;
+        }
+
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function getDateXDaysAgo(days) {
+            const date = new Date();
+            date.setDate(date.getDate() - days);
+            return date;
+        }
+
+        function renderChart(data) {
+            const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } = Recharts;
+            
+            ReactDOM.render(
+                React.createElement(ResponsiveContainer, { width: '100%', height: 300 },
+                    React.createElement(BarChart, { data: data, margin: { top: 20, right: 30, left: 20, bottom: 5 } },
+                        React.createElement(XAxis, { dataKey: "date" }),
+                        React.createElement(YAxis),
+                        React.createElement(Tooltip, {
+                            formatter: (value) => [`Impact Score: ${value.toFixed(1)}`, 'Solar Activity']
+                        }),
+                        React.createElement(Bar, {
+                            dataKey: "impact",
+                            fill: "#0066cc",
+                            name: "Solar Impact"
+                        })
+                    )
+                ),
+                document.getElementById('chart')
+            );
+        }
+
+        async function analyzeSolarActivity() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p class="status loading">Calculating solar impact...</p>';
+
+            try {
+                const today = new Date();
+                const thirtyDaysAgo = getDateXDaysAgo(30);
+                
+                const response = await fetch(
+                    `https://api.nasa.gov/DONKI/FLR?startDate=${formatDate(thirtyDaysAgo)}&endDate=${formatDate(today)}&api_key=DEMO_KEY`
+                );
+                const data = await response.json();
+
+                // Process data with impact scores
+                const dailyImpact = {};
+                const days = [];
+                for (let i = 30; i >= 0; i--) {
+                    const date = getDateXDaysAgo(i);
+                    const dateStr = formatDate(date);
+                    dailyImpact[dateStr] = 0;
+                    days.push(dateStr);
+                }
+
+                // Calculate impact scores per day
+                data.forEach(flare => {
+                    const day = formatDate(new Date(flare.beginTime));
+                    if (dailyImpact.hasOwnProperty(day)) {
+                        dailyImpact[day] += calculateImpactScore(flare);
+                    }
+                });
+
+                // Prepare chart data
+                const chartData = days.map(date => ({
+                    date: date.slice(5),  // Show only MM-DD
+                    impact: dailyImpact[date],
+                    isToday: date === formatDate(today)
+                }));
+
+                // Calculate metrics for status
+                const todayImpact = dailyImpact[formatDate(today)];
+                const avgDailyImpact = Object.values(dailyImpact).reduce((a, b) => a + b, 0) / 30;
+                const ratio = todayImpact / avgDailyImpact;
+
+                // Get today's flares for detailed reporting
+                const todayFlares = data.filter(flare => 
+                    formatDate(new Date(flare.beginTime)) === formatDate(today)
+                );
+
+                // Determine status
+                let status, details;
+                if (todayImpact === 0) {
+                    status = '<span class="low">QUIET SUN</span>';
+                    details = 'No significant solar activity today.';
+                } else if (ratio > 3) {
+                    status = '<span class="extreme">MAJOR SOLAR ACTIVITY</span>';
+                    details = `Impact score of ${todayImpact.toFixed(1)} (${ratio.toFixed(1)}x above average)`;
+                } else if (ratio > 1.5) {
+                    status = '<span class="high">ENHANCED ACTIVITY</span>';
+                    details = `Impact score of ${todayImpact.toFixed(1)} (${ratio.toFixed(1)}x average)`;
+                } else {
+                    status = '<span class="normal">NORMAL ACTIVITY</span>';
+                    details = `Impact score of ${todayImpact.toFixed(1)} (near average)`;
+                }
+
+                // Add flare details if there are any
+                if (todayFlares.length > 0) {
+                    details += '<br><br>Today\'s events:<br>' + todayFlares.map(flare => 
+                        `• Class ${flare.classType} flare at ${new Date(flare.beginTime).toLocaleTimeString()}`
+                    ).join('<br>');
+                }
+
+                resultDiv.innerHTML = `
+                    <p class="status">${status}</p>
+                    <p class="details">${details}</p>
+                `;
+
+                renderChart(chartData);
+
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="status">Error analyzing solar activity</p>
+                    <p>Please try again later.</p>
+                `;
+                console.error('Error:', error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', analyzeSolarActivity);
+    </script>
 </body>
 </html>
