@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Name</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 650px;
+            margin: 0 auto;
+            padding: 2rem;
+            color: #333;
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin: 1.5rem 0 1rem;
+            font-weight: 600;
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        /* Links */
+        a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* Navigation */
+        nav {
+            margin-bottom: 2rem;
+        }
+
+        nav a {
+            margin-right: 1rem;
+        }
+
+        /* Lists */
+        ul {
+            list-style-type: none;
+            margin-bottom: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 3rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+            font-size: 0.9rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <!-- Homepage content -->
+    <header>
+        <h1>Your Name</h1>
+        <p>Working on [Your Current Project]. <a href="about.html">More about me</a>.</p>
+    </header>
+
+    <main>
+        <h2>Posts</h2>
+        <ul>
+            <li><a href="#">Your Latest Blog Post</a></li>
+            <li><a href="#">Another Interesting Post</a></li>
+            <li><a href="#">Technical Discussion</a></li>
+            <li><a href="#">Project Updates</a></li>
+        </ul>
+
+        <h2>Projects</h2>
+        <ul>
+            <li><a href="#">Current Project</a></li>
+            <li><a href="#">Side Project</a></li>
+            <li><a href="#">Open Source Contribution</a></li>
+        </ul>
+    </main>
+
+    <footer>
+        <p>© 2025</p>
+    </footer>
+</body>
+</html>
