@@ -135,7 +135,7 @@
                 console.log('Fetching data from', formatDate(sevenDaysAgo), 'to', formatDate(today));
 
                 const data = await fetchWithRetry(
-                    `https://api.nasa.gov/DONKI/FLR?startDate=${formatDate(sevenDaysAgo)}&endDate=${formatDate(today)}&api_key=DEMO_KEY`
+                    `https://api.nasa.gov/DONKI/FLR?startDate=${formatDate(sevenDaysAgo)}&endDate=${formatDate(today)}&api_key=ca7RMecVzIUS5qGgJSpaBsq847ulTsHfDSHuIL6a`
                 );
 
                 console.log('Received data:', data);
